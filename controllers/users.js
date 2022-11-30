@@ -1,3 +1,4 @@
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
@@ -6,6 +7,45 @@ const BadRequestError = require('../errors/bad_request');
 const NotFoundError = require('../errors/not_found');
 const ConflictError = require('../errors/conflict');
 
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+module.exports.createUser = (req, res, next) => {
+    const { name, email, password } = req.body;
+    bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,      
+      email,
+      password: hash,
+    }))
+    .then((user) => User.findOne({ _id: user._id }))
+    .then((user) => {
+      res.send(user);
+    })
+    .catch((err) => {
+      if (err.code === 11000) {
+        next(new ConflictError('Почта уже существует'));
+      } else if (err.name === 'ValidationError') {
+        next(new BadRequestError('Переданы некорректные данные'));
+      } else {
+        next(err);
+      }
+    });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        NODE_ENV === 'production' ? JWT_SECRET : 'some-secret-key',
+        { expiresIn: '7d' },
+      );
+      res.send({ token });
+    })
+    .catch(next);
+};
 
 module.exports.getUserInfo = (req, res, next) => {
   const id = req.user._id;
