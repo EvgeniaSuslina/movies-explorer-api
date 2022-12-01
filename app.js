@@ -1,25 +1,27 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser'); 
+const bodyParser = require('body-parser');
 const { errors } = require('celebrate');
-const helmet = require("helmet");
+const helmet = require('helmet');
 
 const router = require('./routes/index');
 const NotFoundError = require('./errors/not_found');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
-const limiter = require('./utils/config')
+const { limiter, mongoUrlAdress } = require('./utils/config');
+
+const { NODE_ENV, DATA_BASE } = process.env;
 
 const app = express();
 
 const { PORT = 3000 } = process.env;
 
-mongoose.connect('mongodb://localhost:27017/moviesdb', {
+mongoose.connect(NODE_ENV === 'production' ? DATA_BASE : mongoUrlAdress, {
   useNewUrlParser: true,
 });
 
 app.listen(PORT, () => {
-    console.log('Сервер экспресс запущен');
+  console.log('Сервер экспресс запущен');
 });
 
 app.use(helmet());
@@ -28,7 +30,7 @@ app.use(requestLogger);
 
 app.use(limiter);
 
-app.use(bodyParser.json()); 
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(router);

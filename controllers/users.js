@@ -6,14 +6,15 @@ const User = require('../models/user');
 const BadRequestError = require('../errors/bad_request');
 const NotFoundError = require('../errors/not_found');
 const ConflictError = require('../errors/conflict');
+const UnauthorizedError = require('../errors/unauthorized');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
 module.exports.createUser = (req, res, next) => {
-    const { name, email, password } = req.body;
-    bcrypt.hash(password, 10)
+  const { name, email, password } = req.body;
+  bcrypt.hash(password, 10)
     .then((hash) => User.create({
-      name,      
+      name,
       email,
       password: hash,
     }))
@@ -44,7 +45,9 @@ module.exports.login = (req, res, next) => {
       );
       res.send({ token });
     })
-    .catch(next);
+    .catch(() => {
+      next(new UnauthorizedError('Почта или пароль введены неправильно'));
+    });
 };
 
 module.exports.getUserInfo = (req, res, next) => {
@@ -58,41 +61,35 @@ module.exports.getUserInfo = (req, res, next) => {
         next(new NotFoundError('Пользователь по указанному _id не найден.'));
       }
     })
+    .catch(next);
+};
+
+module.exports.updateUserInfo = (req, res, next) => {
+  const id = req.user._id;
+  const { name, email } = req.body;
+
+  User.findByIdAndUpdate(
+    id,
+    { name, email },
+    { new: true, runValidators: true },
+  )
+    .then((user) => {
+      if (user) {
+        res.send({
+          email: user.email,
+          name: user.name,
+        });
+      } else {
+        next(new NotFoundError('Пользователь не найден.'));
+      }
+    })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequestError('Введен невалидный id'));
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError('При обновлении данных пользователя были переданы некорректные данные'));
+      } else if (err.code === 11000) {
+        next(new ConflictError('Введенная почта принадлежит другому пользователю'));
       } else {
         next(err);
       }
     });
-};
-
-module.exports.updateUserInfo = (req, res, next) => {
-    const id = req.user._id;
-    const { name, email } = req.body;
- 
-    User.findByIdAndUpdate(
-      id,
-      { name, email },
-      { new: true, runValidators: true },
-    )
-      .then((user) => {
-        if (user) {
-          res.send({
-            email: user.email,
-            name: user.name,
-          });
-        } else {
-          next(new NotFoundError('Пользователь не найден.'));
-        }
-      })
-      .catch((err) => {
-        if (err.name === 'ValidationError') {
-          next(new BadRequestError('При обновлении данных пользователя были переданы некорректные данные'));
-        } else if (err.name === 'CastError') {
-          next(new BadRequestError('Введен некорректный id пользователя'));
-        } else {
-          next(err);
-        }
-      });
 };
