@@ -5,8 +5,8 @@ const routesMovies = require('./movies');
 const { createUser, login } = require('../controllers/users');
 const { validationCreateUser, validationLogin } = require('../utils/celebrate');
 
-router.post('/signin', validationLogin, login);
 router.post('/signup', validationCreateUser, createUser);
+router.post('/signin', validationLogin, login);
 
 router.use(auth);
 

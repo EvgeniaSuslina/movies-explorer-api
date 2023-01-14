@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const { errors } = require('celebrate');
 const helmet = require('helmet');
+const cors = require('cors');
+const allowedCors = require('./utils/allowedCors');
 
 const router = require('./routes/index');
 const NotFoundError = require('./errors/not_found');
@@ -14,7 +16,7 @@ const { NODE_ENV, DATA_BASE } = process.env;
 
 const app = express();
 
-const { PORT = 3000 } = process.env;
+const { PORT = 3001 } = process.env;
 
 mongoose.connect(NODE_ENV === 'production' ? DATA_BASE : mongoUrlAdress, {
   useNewUrlParser: true,
@@ -23,6 +25,8 @@ mongoose.connect(NODE_ENV === 'production' ? DATA_BASE : mongoUrlAdress, {
 app.listen(PORT, () => {
   console.log('Сервер экспресс запущен');
 });
+
+app.use(cors(allowedCors));
 
 app.use(helmet());
 
