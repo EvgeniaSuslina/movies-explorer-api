@@ -16,7 +16,7 @@ const { NODE_ENV, DATA_BASE } = process.env;
 
 const app = express();
 
-const { PORT = 3001 } = process.env;
+const { PORT = 3000 } = process.env;
 
 mongoose.connect(NODE_ENV === 'production' ? DATA_BASE : mongoUrlAdress, {
   useNewUrlParser: true,
